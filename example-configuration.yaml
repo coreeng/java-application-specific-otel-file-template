@@ -1,0 +1,92 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: "0.0.0.0:4317"
+      http:
+        endpoint: "0.0.0.0:4318"
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 50
+    spike_limit_percentage: 30
+  resource/mandatory-labels:
+    attributes:
+      - key: tenant
+        action: insert
+        value: test
+      - key: spark_group
+        action: insert
+        value: test
+      - key: service
+        action: insert
+        value: test
+  resource/remove-high-cardinality:
+    attributes:
+      - key: container.id
+        action: delete
+      - key: host.name
+        action: delete
+      - key: host.arch
+        action: delete
+      - key: instance
+        action: delete
+      - key: job
+        action: delete
+      - key: os.description
+        action: delete
+      - key: os.type
+        action: delete
+      - key: process.command_args
+        action: delete
+      - key: process.executable.path
+        action: delete
+      - key: process.pid
+        action: delete
+      - key: process.runtime.description
+        action: delete
+      - key: process.runtime.name
+        action: delete
+      - key: process.runtime.version
+        action: delete
+      - key: service.instance.id
+        action: delete
+      - key: telemetry.distro.name
+        action: delete
+      - key: telemetry.distro.version
+        action: delete
+      - key: telemetry.sdk.language
+        action: delete
+      - key: telemetry.sdk.name
+        action: delete
+      - key: telemetry.sdk.version
+        action: delete
+  batch:
+    timeout: 5s
+service:
+  extensions: []
+  pipelines:
+    traces:
+      receivers: [ otlp ]
+      processors:
+        - resource/mandatory-labels
+        - resource/remove-high-cardinality
+        - batch
+      exporters: [ file ]
+    metrics:
+      receivers: [ otlp ]
+      processors:
+        - resource/mandatory-labels
+        - resource/remove-high-cardinality
+        - batch
+      exporters:  [ file ]
+    logs:
+      receivers: [ otlp ]
+      processors:
+        - resource/mandatory-labels
+        - resource/remove-high-cardinality
+        - batch
+      exporters: [ file ]
+exporters:
+  file:
+    path: ./app/logs.json
